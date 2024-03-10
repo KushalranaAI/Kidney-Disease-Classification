@@ -21,40 +21,18 @@ jobs:
 
       - name: Run unit tests
         run: echo "Running unit tests"
-
+        
   build-and-push-dockerhub-image:
     name: Continuous Delivery
     runs-on: ubuntu-latest
     needs: integration
 
+    container:
+      image: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
-      - name: Install Docker (if not already installed)
-        run: |
-          if ! which docker >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-            sudo apt-get update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-          fi
-
-      - name: Install Homebrew (if not already installed)
-        run: |
-          if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> $HOME/.bashrc
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
-          fi
-
-      - name: Install Render CLI
-        run: |
-          brew tap render-oss/render
-          brew install render
 
       - name: Configure Render credentials
         run: |
@@ -102,5 +80,8 @@ jobs:
       - name: Deploy to Render
         env:
           RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
+          DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          render deploy --service $RENDER_SERVICE --image ${{ needs.cd.outputs.image }}
+          if [[ $GITHUB_REF == "refs/heads/main" ]]; then
+            curl -X POST -d '{}' -H 'Content-Type: application/json' "$DEPLOY_HOOK_URL"
+          fi
