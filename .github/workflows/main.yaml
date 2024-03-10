@@ -40,10 +40,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
-      - name: Install Render CLI
+      - name: Install Render CLI (direct download)
+        # Assuming the script URL is https://render.com/install/script.sh
         run: |
-          brew tap render-oss/render
-          brew install render
+          curl -sSL https://render.com/install/script.sh -o render-install.sh
+          bash render-install.sh  # Run downloaded script
+
 
       - name: Configure Render credentials
         run: |
