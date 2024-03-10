@@ -40,10 +40,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
+      - name: Install Homebrew (if not already installed)
+        run: |
+          if ! which brew >/dev/null 2>&1; then
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+
       - name: Install Render CLI (using Homebrew)
         run: |
           brew tap render-oss/render
           brew install render
+
 
 
 
