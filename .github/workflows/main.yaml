@@ -42,7 +42,7 @@ jobs:
 
       - name: Install Render CLI
         run: |
-          curl -sSL https://render.com/install | sh
+          curl -sSL https://render.com/install | bash
 
       - name: Configure Render credentials
         run: |
