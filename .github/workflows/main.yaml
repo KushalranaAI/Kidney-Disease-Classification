@@ -46,11 +46,13 @@ jobs:
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           fi
 
-      - name: Install Render CLI (using Homebrew)
+      - name: Tap Render Formula
         run: |
           brew tap render-oss/render
-          brew install render
 
+      - name: Install Render
+        run: |
+          brew install render
 
 
 
