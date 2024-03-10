@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
 
 jobs:
-  ci:
+  integration:
+    name: Continuous Integration
     runs-on: ubuntu-latest
 
     steps:
@@ -19,9 +22,10 @@ jobs:
       - name: Run unit tests
         run: echo "Running unit tests"
 
-  cd:
+  build-and-push-ecr-image:
+    name: Continuous Delivery
     runs-on: ubuntu-latest
-    needs: ci
+    needs: integration
 
     steps:
       - name: Checkout Code
@@ -68,9 +72,9 @@ jobs:
           # Output the image URL for deployment job
           echo "::set-output name=image::$RENDER_REGISTRY/$RENDER_SERVICE:latest"
 
-  deploy:
+  Continuous-Deployment:
+    needs: build-and-push-ecr-image
     runs-on: self-hosted
-    needs: cd
 
     steps:
       - name: Configure Render credentials
