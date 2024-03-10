@@ -42,11 +42,14 @@ jobs:
           RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_IMAGE: docker pull kushalranaai/kidney-disease-classification
+          DOCKER_IMAGE: kushalranaai/kidney-disease-classification:latest
         run: |
           set -x  # Enable debugging output
           # Log in to Docker Hub
           docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+
+          # Pull the Docker image from Docker Hub
+          docker pull $DOCKER_IMAGE
 
           # Tag the Docker image for Render registry
           docker tag $DOCKER_IMAGE $RENDER_REGISTRY/$RENDER_SERVICE:latest
