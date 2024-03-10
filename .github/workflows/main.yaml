@@ -36,13 +36,8 @@ jobs:
           echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
           chmod 600 ~/.netrc
 
-      # - name: Log in to Docker Hub
-      #   run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin registry-1.docker.io
-
-      - name: Build, tag, and push image to Render
+      - name: Build, tag, and push image
         env:
-          RENDER_REGISTRY: registry.render.com
-          RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE: kushalranaai/kidney-disease-classification
@@ -52,18 +47,11 @@ jobs:
           # Log in to Docker Hub
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 
-          # Tag the Docker image for Render registry
-          docker tag $DOCKER_IMAGE $RENDER_REGISTRY/$RENDER_SERVICE:latest
-
-          # Log in to Render registry
-          echo ${{ secrets.RENDER_PASSWORD }} | docker login -u $RENDER_REGISTRY --password-stdin
-
-          # Push the Docker image to Render registry
-          docker push $RENDER_REGISTRY/$RENDER_SERVICE:latest
+          # Push the Docker image to Docker Hub
+          docker push $DOCKER_IMAGE
 
           # Output the image URL for deployment job
-          echo "::set-output name=image::$RENDER_REGISTRY/$RENDER_SERVICE:latest"
-
+          echo "::set-output name=image::$DOCKER_IMAGE"
 
   Continuous-Deployment:
     needs: build-and-push-dockerhub-image
