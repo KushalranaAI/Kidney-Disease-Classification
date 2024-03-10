@@ -21,14 +21,11 @@ jobs:
 
       - name: Run unit tests
         run: echo "Running unit tests"
-        
+
   build-and-push-dockerhub-image:
     name: Continuous Delivery
     runs-on: ubuntu-latest
     needs: integration
-
-    container:
-      image: ubuntu-latest
 
     steps:
       - name: Checkout Code
@@ -45,7 +42,7 @@ jobs:
           RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_IMAGE: your-docker-hub-username/your-docker-image:latest
+          DOCKER_IMAGE: docker pull kushalranaai/kidney-disease-classification:latest
         run: |
           set -x  # Enable debugging output
           # Log in to Docker Hub
