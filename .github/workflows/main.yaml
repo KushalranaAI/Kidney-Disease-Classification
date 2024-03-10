@@ -42,7 +42,8 @@ jobs:
 
       - name: Install Render CLI
         run: |
-          curl -sSL https://render.com/install | bash
+          brew tap render-oss/render
+          brew install render
 
       - name: Configure Render credentials
         run: |
