@@ -48,17 +48,15 @@ jobs:
           DOCKER_IMAGE: kushalranaai/kidney-disease-classification:latest
         run: |
           set -x  # Enable debugging output
-          # Log in to Docker Hub
-          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-          # Pull the Docker image from Docker Hub
-          docker pull $DOCKER_IMAGE
+          # Log in to Docker Hub
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 
           # Tag the Docker image for Render registry
           docker tag $DOCKER_IMAGE $RENDER_REGISTRY/$RENDER_SERVICE:latest
 
           # Log in to Render registry
-          docker login -u $RENDER_REGISTRY -p ${{ secrets.RENDER_PASSWORD }}
+          echo ${{ secrets.RENDER_PASSWORD }} | docker login -u $RENDER_REGISTRY --password-stdin
 
           # Push the Docker image to Render registry
           docker push $RENDER_REGISTRY/$RENDER_SERVICE:latest
