@@ -42,10 +42,11 @@ jobs:
 
       - name: Install Homebrew (if not already installed)
         run: |
-          if ! which brew >/dev/null 2>&1; then
+          if ! command -v brew &> /dev/null; then
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> $HOME/.bashrc
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          source $HOME/.bashrc  # This ensures changes are effective in the current shell
           fi
 
       - name: Tap Render Formula
