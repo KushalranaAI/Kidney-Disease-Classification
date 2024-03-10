@@ -42,7 +42,7 @@ jobs:
           RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_IMAGE: docker pull kushalranaai/kidney-disease-classification:latest
+          DOCKER_IMAGE: docker pull kushalranaai/kidney-disease-classification
         run: |
           set -x  # Enable debugging output
           # Log in to Docker Hub
