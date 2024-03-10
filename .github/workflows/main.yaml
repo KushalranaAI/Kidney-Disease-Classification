@@ -1,0 +1,89 @@
+name: workflow
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  integration:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Lint code
+        run: echo "Linting repository"
+
+      - name: Run unit tests
+        run: echo "Running unit tests"
+
+  build-and-push-render-image:
+    name: Continuous Delivery
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+        -   name: Checkout Code
+            uses: actions/checkout@v3
+
+        -   name: Install Docker and Render CLI
+            run: |
+                sudo apt-get update
+                sudo apt-get install -y docker.io
+                curl -sSL https://render.com/install | sh
+
+        -   name: Configure Render credentials
+            run: |
+                echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
+                chmod 600 ~/.netrc
+
+        -   name: Build, tag, and push image to Render
+            id: build-image
+            env:
+                RENDER_REGISTRY: registry.render.com
+                RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
+                IMAGE_TAG: latest
+            run: |
+                # Build a Docker container and
+                # push it to Render's container registry.
+                docker build -t $RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG .
+                docker login -u $RENDER_REGISTRY -p ${{ secrets.RENDER_PASSWORD }}
+                docker push $RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG
+                echo "::set-output name=image::$RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG"
+
+          
+          
+  Continuous-Deployment:
+    needs: build-and-push-render-image
+    runs-on: self-hosted
+    steps:
+        -   name: Checkout
+            uses: actions/checkout@v3
+
+        -   name: Configure Render credentials
+            run: |
+                echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
+                chmod 600 ~/.netrc
+
+        -   name: Pull latest images
+            run: |
+                docker pull registry.render.com/${{ secrets.RENDER_SERVICE_NAME }}:latest
+
+        -   name: Stop and remove container if running
+            run: |
+                docker ps -q --filter "name=cnncls" | grep -q . && docker stop cnncls && docker rm -fv cnncls
+
+        -   name: Run Docker Image to serve users
+            run: |
+                docker run -d -p 8080:8080 --name=cnncls -e 'RENDER_USERNAME=${{ secrets.RENDER_USERNAME }}' -e 'RENDER_PASSWORD=${{ secrets.RENDER_PASSWORD }}' registry.render.com/${{ secrets.RENDER_SERVICE_NAME }}:latest
+
+        -   name: Clean previous images and containers
+            run: |
+                docker system prune -f
