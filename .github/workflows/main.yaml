@@ -48,9 +48,6 @@ jobs:
           # Log in to Docker Hub
           docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-          # Pull the Docker image from Docker Hub
-          docker pull $DOCKER_IMAGE
-
           # Tag the Docker image for Render registry
           docker tag $DOCKER_IMAGE $RENDER_REGISTRY/$RENDER_SERVICE:latest
 
