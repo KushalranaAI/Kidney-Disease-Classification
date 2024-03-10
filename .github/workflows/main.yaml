@@ -54,6 +54,7 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE: your-docker-hub-username/your-docker-image:latest
         run: |
+          set -x  # Enable debugging output
           # Log in to Docker Hub
           docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
