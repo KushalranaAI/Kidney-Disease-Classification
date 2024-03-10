@@ -39,14 +39,22 @@ jobs:
         run: |
           set -x  # Enable debugging output
 
+          # Set up Docker credentials store
+          mkdir -p ~/.docker
+          echo '{"credsStore": "secretservice"}' > ~/.docker/config.json
+
           # Log in to Docker Hub
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+          # Build the Docker image
+          docker build -t $DOCKER_IMAGE .
 
           # Push the Docker image to Docker Hub
           docker push $DOCKER_IMAGE
 
           # Output the image URL for deployment job
           echo "::set-output name=image::$DOCKER_IMAGE"
+
 
   Continuous-Deployment:
     needs: build-and-push-dockerhub-image
