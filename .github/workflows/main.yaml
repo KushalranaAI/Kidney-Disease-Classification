@@ -1,20 +1,14 @@
-name: workflow
+name: CI/CD Workflow
 
 on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'README.md'
-
-permissions:
-  id-token: write
-  contents: read
 
 jobs:
-  integration:
-    name: Continuous Integration
+  ci:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -25,65 +19,67 @@ jobs:
       - name: Run unit tests
         run: echo "Running unit tests"
 
-  build-and-push-render-image:
-    name: Continuous Delivery
-    needs: integration
+  cd:
     runs-on: ubuntu-latest
+    needs: ci
+
     steps:
-        -   name: Checkout Code
-            uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-        -   name: Install Docker and Render CLI
-            run: |
-                sudo apt-get update
-                sudo apt-get install -y docker.io
-                curl -sSL https://render.com/install | sh
+      - name: Install Docker and Render CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+          curl -sSL https://render.com/install | sh
 
-        -   name: Configure Render credentials
-            run: |
-                echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
-                chmod 600 ~/.netrc
+      - name: Configure Render credentials
+        run: |
+          echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
+          chmod 600 ~/.netrc
 
-        -   name: Build, tag, and push image to Render
-            id: build-image
-            env:
-                RENDER_REGISTRY: registry.render.com
-                RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
-                IMAGE_TAG: latest
-            run: |
-                # Build a Docker container and
-                # push it to Render's container registry.
-                docker build -t $RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG .
-                docker login -u $RENDER_REGISTRY -p ${{ secrets.RENDER_PASSWORD }}
-                docker push $RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG
-                echo "::set-output name=image::$RENDER_REGISTRY/$RENDER_SERVICE:$IMAGE_TAG"
+      - name: Build, tag, and push image to Render
+        env:
+          RENDER_REGISTRY: registry.render.com
+          RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_IMAGE: your-docker-hub-username/your-docker-image:latest
+        run: |
+          # Log in to Docker Hub
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-          
-          
-  Continuous-Deployment:
-    needs: build-and-push-render-image
+          # Pull the Docker image from Docker Hub
+          docker pull $DOCKER_IMAGE
+
+          # Tag the Docker image for Render registry
+          docker tag $DOCKER_IMAGE $RENDER_REGISTRY/$RENDER_SERVICE:latest
+
+          # Log in to Render registry
+          docker login -u $RENDER_REGISTRY -p ${{ secrets.RENDER_PASSWORD }}
+
+          # Push the Docker image to Render registry
+          docker push $RENDER_REGISTRY/$RENDER_SERVICE:latest
+
+          # Output the image URL for deployment job
+          echo "::set-output name=image::$RENDER_REGISTRY/$RENDER_SERVICE:latest"
+
+  deploy:
     runs-on: self-hosted
+    needs: cd
+
     steps:
-        -   name: Checkout
-            uses: actions/checkout@v3
+      - name: Configure Render credentials
+        run: |
+          echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
+          chmod 600 ~/.netrc
 
-        -   name: Configure Render credentials
-            run: |
-                echo "machine render.com login ${{ secrets.RENDER_USERNAME }} password ${{ secrets.RENDER_PASSWORD }}" > ~/.netrc
-                chmod 600 ~/.netrc
-
-        -   name: Pull latest images
-            run: |
-                docker pull registry.render.com/${{ secrets.RENDER_SERVICE_NAME }}:latest
-
-        -   name: Stop and remove container if running
-            run: |
-                docker ps -q --filter "name=cnncls" | grep -q . && docker stop cnncls && docker rm -fv cnncls
-
-        -   name: Run Docker Image to serve users
-            run: |
-                docker run -d -p 8080:8080 --name=cnncls -e 'RENDER_USERNAME=${{ secrets.RENDER_USERNAME }}' -e 'RENDER_PASSWORD=${{ secrets.RENDER_PASSWORD }}' registry.render.com/${{ secrets.RENDER_SERVICE_NAME }}:latest
-
-        -   name: Clean previous images and containers
-            run: |
-                docker system prune -f
+      - name: Deploy to Render
+        env:
+          RENDER_SERVICE: ${{ secrets.RENDER_SERVICE_NAME }}
+        run: |
+          render deploy --service $RENDER_SERVICE --image ${{ needs.cd.outputs.image }}
